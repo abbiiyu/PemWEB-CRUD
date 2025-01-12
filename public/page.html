@@ -1,15 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="css/page.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRUD Barang</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/page.css">
 </head>
-<body>
-    <div class="container mx-auto bg-gray-900 mr-auto">
-        <h1 class="text-8xl underline text-pink-600">HELLOOOOO</h1>
-    </div>
-    
+<body class="bg-gray-100">
+  <div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold text-center mb-8">CRUD Barang</h1>
+
+    <!-- Form Tambah Barang -->
+    <form id="addForm" class="bg-white p-6 rounded shadow-md mb-6" enctype="multipart/form-data">
+        <h2 class="text-xl font-semibold mb-4">Tambah Barang</h2>
+        <div class="mb-4">
+          <label for="name" class="block text-sm font-medium text-gray-700">Nama Barang</label>
+          <input type="text" id="name" name="name" class="w-full p-2 border border-gray-300 rounded" required>
+        </div>
+        <div class="mb-4">
+          <label for="price" class="block text-sm font-medium text-gray-700">Harga</label>
+          <input type="number" id="price" name="price" class="w-full p-2 border border-gray-300 rounded" required>
+        </div>
+        <div class="mb-4">
+          <label for="image" class="block text-sm font-medium text-gray-700">Foto Barang</label>
+          <input type="file" id="image" name="image" class="w-full p-2 border border-gray-300 rounded" required>
+        </div>
+        <div class="mb-4">
+          <label for="description" class="block text-sm font-medium text-gray-700">Deskripsi Barang</label>
+          <textarea id="description" name="description" class="w-full p-2 border border-gray-300 rounded" required></textarea>
+        </div>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Tambah Barang</button>
+      </form>
+      
+
+    <!-- Tabel Barang -->
+    <table class="table-auto w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border px-4 py-2">ID</th>
+            <th class="border px-4 py-2">Nama Barang</th>
+            <th class="border px-4 py-2">Harga</th>
+            <th class="border px-4 py-2">Gambar</th> <!-- Kolom untuk Gambar -->
+            <th class="border px-4 py-2">Deskripsi</th> <!-- Kolom untuk Deskripsi -->
+            <th class="border px-4 py-2">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="itemTable">
+          <!-- Data akan diisi oleh JavaScript -->
+        </tbody>
+      </table>
+      
+
+  <script>
+    // Fetch data dan tampilkan di tabel
+// Fetch data dan tampilkan di tabel
+async function fetchData() {
+  const response = await fetch('crud.php');
+  const data = await response.json();
+  const table = document.getElementById('itemTable');
+  table.innerHTML = ''; // Kosongkan tabel sebelum menambahkan data baru
+
+  data.forEach(item => {
+    const row = `<tr>
+      <td class="border px-4 py-2">${item.id}</td>
+      <td class="border px-4 py-2">${item.name}</td>
+      <td class="border px-4 py-2">${item.price}</td>
+      <td class="border px-4 py-2">
+        <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover">
+      </td>
+      <td class="border px-4 py-2">${item.description}</td>
+      <td class="border px-4 py-2">
+        <button class="bg-red-500 text-white px-2 py-1 rounded" onclick="deleteItem(${item.id})">Hapus</button>
+      </td>
+    </tr>`;
+    table.innerHTML += row;
+  });
+}
+
+
+// Tambah barang
+document.getElementById('addForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  formData.append('action', 'create');
+
+  await fetch('crud.php', {
+    method: 'POST',
+    body: formData
+  });
+
+  this.reset();
+  fetchData();
+});
+
+
+    // Hapus barang
+    async function deleteItem(id) {
+      const formData = new FormData();
+      formData.append('action', 'delete');
+      formData.append('id', id);
+
+      await fetch('crud.php', {
+        method: 'POST',
+        body: formData
+      });
+
+      fetchData();
+    }
+
+    // Panggil fetchData saat halaman dimuat
+    fetchData();
+  </script>
 </body>
 </html>
