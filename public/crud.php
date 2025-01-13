@@ -41,44 +41,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        unlink("uploads/" . $row['image']);
+        if (file_exists("uploads/" . $row['image'])) {
+            unlink("uploads/" . $row['image']);
+        }
 
         $stmt = $conn->prepare("DELETE FROM barang WHERE id = ?");
         $stmt->bind_param("i", $id);
         $stmt->execute();
 
-        echo json_encode(["message" => "Barang berhasil dihapus"]);
-    } elseif ($action === 'edit') {
+        // Reset auto-increment agar ID tetap berurutan
+        $conn->query("SET @new_id = 0;");
+        $conn->query("UPDATE barang SET id = (@new_id := @new_id + 1);");
+        $conn->query("ALTER TABLE barang AUTO_INCREMENT = 1;");
+
+        echo json_encode(["message" => "Barang berhasil dihapus dan ID diperbarui"]);
+    } elseif ($action === 'update') {
         $id = $_POST['id'];
         $name = $_POST['name'];
         $price = $_POST['price'];
         $description = $_POST['description'];
 
-        if (!empty($_FILES['image']['name'])) {
-            // Hapus gambar lama
+        // Periksa apakah ada gambar baru yang diunggah
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $stmt = $conn->prepare("SELECT image FROM barang WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $result = $stmt->get_result();
             $row = $result->fetch_assoc();
-            unlink("uploads/" . $row['image']);
+            if (file_exists("uploads/" . $row['image'])) {
+                unlink("uploads/" . $row['image']);
+            }
 
-            // Upload gambar baru
             $targetDir = "uploads/";
             $imageName = basename($_FILES["image"]["name"]);
             $targetFile = $targetDir . $imageName;
             move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile);
 
-            // Update dengan gambar baru
             $stmt = $conn->prepare("UPDATE barang SET name = ?, price = ?, image = ?, description = ? WHERE id = ?");
             $stmt->bind_param("sdssi", $name, $price, $imageName, $description, $id);
         } else {
-            // Update tanpa gambar baru
             $stmt = $conn->prepare("UPDATE barang SET name = ?, price = ?, description = ? WHERE id = ?");
             $stmt->bind_param("sdsi", $name, $price, $description, $id);
         }
-        $stmt->execute();
 
+        $stmt->execute();
         echo json_encode(["message" => "Barang berhasil diperbarui"]);
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
