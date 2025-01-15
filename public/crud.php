@@ -49,12 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("i", $id);
         $stmt->execute();
 
-        // Reset auto-increment agar ID tetap berurutan
-        $conn->query("SET @new_id = 0;");
-        $conn->query("UPDATE barang SET id = (@new_id := @new_id + 1);");
-        $conn->query("ALTER TABLE barang AUTO_INCREMENT = 1;");
-
-        echo json_encode(["message" => "Barang berhasil dihapus dan ID diperbarui"]);
+        echo json_encode(["message" => "Barang berhasil dihapus"]);
     } elseif ($action === 'update') {
         $id = $_POST['id'];
         $name = $_POST['name'];
