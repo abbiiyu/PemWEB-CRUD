@@ -13,3 +13,4 @@ CREATE TABLE barang (
     description TEXT NOT NULL
 );
 
+

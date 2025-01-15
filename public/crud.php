@@ -13,9 +13,11 @@ if ($conn->connect_error) {
     die(json_encode(["error" => $conn->connect_error]));
 }
 
+// Tangani permintaan POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'];
 
+    // Tambah barang baru
     if ($action === 'create') {
         $name = $_POST['name'];
         $price = $_POST['price'];
@@ -23,15 +25,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Upload gambar
         $targetDir = "uploads/";
-        $imageName = basename($_FILES["image"]["name"]);
+        $imageName = time() . "_" . basename($_FILES["image"]["name"]);
         $targetFile = $targetDir . $imageName;
-        move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile);
 
-        $stmt = $conn->prepare("INSERT INTO barang (name, price, image, description) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("sdss", $name, $price, $imageName, $description);
-        $stmt->execute();
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
+            $stmt = $conn->prepare("INSERT INTO barang (name, price, image, description) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("sdss", $name, $price, $imageName, $description);
+            $stmt->execute();
+            echo json_encode(["message" => "Barang berhasil ditambahkan"]);
+        } else {
+            echo json_encode(["error" => "Gagal mengunggah gambar"]);
+        }
 
-        echo json_encode(["message" => "Barang berhasil ditambahkan"]);
+    // Hapus barang
     } elseif ($action === 'delete') {
         $id = $_POST['id'];
 
@@ -41,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        if (file_exists("uploads/" . $row['image'])) {
+
+        if ($row && file_exists("uploads/" . $row['image'])) {
             unlink("uploads/" . $row['image']);
         }
 
@@ -50,7 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
 
         echo json_encode(["message" => "Barang berhasil dihapus"]);
-    } elseif ($action === 'update') {
+
+    // Edit barang
+    } elseif ($action === 'edit') {
         $id = $_POST['id'];
         $name = $_POST['name'];
         $price = $_POST['price'];
@@ -63,17 +72,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
             $result = $stmt->get_result();
             $row = $result->fetch_assoc();
-            if (file_exists("uploads/" . $row['image'])) {
+
+            if ($row && file_exists("uploads/" . $row['image'])) {
                 unlink("uploads/" . $row['image']);
             }
 
             $targetDir = "uploads/";
-            $imageName = basename($_FILES["image"]["name"]);
+            $imageName = time() . "_" . basename($_FILES["image"]["name"]);
             $targetFile = $targetDir . $imageName;
-            move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile);
 
-            $stmt = $conn->prepare("UPDATE barang SET name = ?, price = ?, image = ?, description = ? WHERE id = ?");
-            $stmt->bind_param("sdssi", $name, $price, $imageName, $description, $id);
+            if (move_uploaded_file($_FILES["image"]["tmp_name"], $targetFile)) {
+                $stmt = $conn->prepare("UPDATE barang SET name = ?, price = ?, image = ?, description = ? WHERE id = ?");
+                $stmt->bind_param("sdssi", $name, $price, $imageName, $description, $id);
+            } else {
+                echo json_encode(["error" => "Gagal mengunggah gambar baru"]);
+                exit;
+            }
         } else {
             $stmt = $conn->prepare("UPDATE barang SET name = ?, price = ?, description = ? WHERE id = ?");
             $stmt->bind_param("sdsi", $name, $price, $description, $id);
@@ -82,6 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         echo json_encode(["message" => "Barang berhasil diperbarui"]);
     }
+    
+// Tangani permintaan GET
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $result = $conn->query("SELECT * FROM barang");
     $data = [];
@@ -95,3 +111,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $conn->close();
+?>
